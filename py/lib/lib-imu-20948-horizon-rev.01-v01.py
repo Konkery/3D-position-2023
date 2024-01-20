@@ -371,7 +371,7 @@ class ICM20948:
 
         self.setupICM() # Вынес в отдельную функцию, чтобы не путать что к чему относится
 
-        self.setupAK()
+        #self.setupAK()
         # self.write(ICM20948_I2C_MST_CTRL, 0x4D)
         # self.write(ICM20948_I2C_MST_DELAY_CTRL, 0x01)
         
@@ -380,14 +380,18 @@ if __name__ == "__main__":
     imu = ICM20948()
 
     while True:
-        x, y, z = imu.read_magnetometer_data()
+        #x, y, z = imu.read_magnetometer_data()
         ax, ay, az, gx, gy, gz = imu.read_accelerometer_gyro_data()
 
+        #print("""
+#Accel: {:05.2f} {:05.2f} {:05.2f}
+#Gyro:  {:05.2f} {:05.2f} {:05.2f}
+#Mag:   {:05.2f} {:05.2f} {:05.2f}""".format(
+            #ax, ay, az, gx, gy, gz, x, y, z
+        #))
         print("""
-Accel: {:05.2f} {:05.2f} {:05.2f}
-Gyro:  {:05.2f} {:05.2f} {:05.2f}
-Mag:   {:05.2f} {:05.2f} {:05.2f}""".format(
-            ax, ay, az, gx, gy, gz, x, y, z
-        ))
+            Accel: {:05.2f} {:05.2f} {:05.2f}
+            Gyro:  {:05.2f} {:05.2f} {:05.2f}
+            """.format( ax, ay, az, gx, gy, gz  ))
 
-        time.sleep(0.25)
+        time.sleep(1)
