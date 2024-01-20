@@ -389,6 +389,7 @@ if __name__ == "__main__":
 #Mag:   {:05.2f} {:05.2f} {:05.2f}""".format(
             #ax, ay, az, gx, gy, gz, x, y, z
         #))
+        
         print("""
             Accel: {:05.2f} {:05.2f} {:05.2f}
             Gyro:  {:05.2f} {:05.2f} {:05.2f}
