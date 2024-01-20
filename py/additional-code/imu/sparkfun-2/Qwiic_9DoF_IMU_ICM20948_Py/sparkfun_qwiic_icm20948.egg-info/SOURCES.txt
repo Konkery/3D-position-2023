@@ -1,0 +1,9 @@
+README.md
+qwiic_icm20948.py
+setup.cfg
+setup.py
+sparkfun_qwiic_icm20948.egg-info/PKG-INFO
+sparkfun_qwiic_icm20948.egg-info/SOURCES.txt
+sparkfun_qwiic_icm20948.egg-info/dependency_links.txt
+sparkfun_qwiic_icm20948.egg-info/requires.txt
+sparkfun_qwiic_icm20948.egg-info/top_level.txt
