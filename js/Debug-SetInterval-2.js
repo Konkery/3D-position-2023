@@ -12,4 +12,4 @@ const intervalId = setInterval(() => {
 setTimeout(() => {
   console.log('Завершение интервала');
   clearInterval(intervalId);
-}, 1000);
+}, 5000);

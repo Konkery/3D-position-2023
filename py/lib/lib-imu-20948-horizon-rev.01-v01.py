@@ -391,6 +391,8 @@ if __name__ == "__main__":
         #)) #----
         
         print("""
+                     X     Y      Z""")
+        print("""
             Accel: {:05.2f} {:05.2f} {:05.2f}
             Gyro:  {:05.2f} {:05.2f} {:05.2f}
             """.format( ax, ay, az, gx, gy, gz  ))
