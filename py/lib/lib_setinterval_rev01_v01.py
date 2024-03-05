@@ -5,7 +5,7 @@ import time
 Класс SetInterval реализует асинхронную модель работы метода 'run' аналогично
 функции setInterval в JavaScript
 '''
-class SetInterval:
+class setInterval:
     def __init__(self, interval, fn):
     # def __init__(self, interval):
         self.interval = interval        # интервал вызова пользовательской функции 'fn'
