@@ -7,7 +7,6 @@ import time
 '''
 class setInterval:
     def __init__(self, interval, fn):
-    # def __init__(self, interval):
         self.interval = interval        # интервал вызова пользовательской функции 'fn'
         self.fn = fn                    # пользовательский метод который будет асинхронно вызываться с заданным периодом
         self.is_running = False         # идет выполнение 'run'

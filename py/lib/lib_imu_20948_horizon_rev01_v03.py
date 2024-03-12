@@ -307,28 +307,39 @@ class ICM20948:
 
         return ax, ay, az, gx, gy, gz
     
-    def read_acc_gyro_mag_data(self):
+    def read_full_data(self):
         """Последовательное чтение всех датчиков"""
         self.bank(0)
         data = self.read_bytes(ICM20948_ACCEL_XOUT_H, 23)
 
         ax, ay, az, gx, gy, gz, tmprt, st1, lmx, hmx, lmy, hmy, lmz, hmz, st2 = struct.unpack(">hhhhhhhBBBBBBBh", bytearray(data))
 
+        temp = tmprt # значение температуры термодатчика ICM20948
+
         mx = self.twos_comp_two_bytes(hmx, lmx)
         my = self.twos_comp_two_bytes(hmy, lmy)
         mz = self.twos_comp_two_bytes(hmz, lmz)
 
+        # масштабировать показания магнитометра в соответствии со значением масштабирующего коэффициента из документации
+        mx *= 0.15
+        my *= 0.15
+        mz *= 0.15
+
+        mag_arr = [mx, my, mz] # упаковать значения Магнитометра в массив
+
         self.bank(2)
-        # Считать текущий диапазон акселерометра из региста
+        # Считать значения для масштабирования показания акселерометра из регистра
         scale = (self.read(ICM20948_ACCEL_CONFIG) & 0x06) >> 1
-        # Компенсировать измерения согласно текущему рабочему диапазону - стр 12
+        # Компенсировать измерения согласно текущему скалирующему показателю - стр 12
         gs = [16384.0, 8192.0, 4096.0, 2048.0][scale]
 
         ax /= gs
         ay /= gs
         az /= gs
 
-        # Считать текущий диапазон гироскопа из региста
+        acc_arr = [ax, ay, az] # упаковать значения Акселерометра в массив
+
+        # Считать текущий диапазон гироскопа из регистра
         scale = (self.read(ICM20948_GYRO_CONFIG_1) & 0x06) >> 1
         # Компенсировать измерения согласно текущему рабочему диапазону - стр 11
         dps = [131, 65.5, 32.8, 16.4][scale]
@@ -337,12 +348,11 @@ class ICM20948:
         gy /= dps
         gz /= dps
 
-        # необходимо развернуть байты данных с осей магнитометра
-        mx *= 0.15
-        my *= 0.15
-        mz *= 0.15
+        gyro_arr = [gx, gy, gz] # упаковать значения Гироскопа в массив
 
-        return ax, ay, az, gx, gy, gz, mx, my, mz
+
+        # return ax, ay, az, gx, gy, gz, mx, my, mz # эту строку нужно РАСКОМЕНТИРОВАТЬ если будет работать секция main
+        return acc_arr, gyro_arr, mag_arr, temp # эту строку нужно ЗАКОМЕНТИРОВАТЬ если будет работать секция main
 
     def set_magnetometer_sample_mode(self, rate=50):
         """Настройка частоты семплирования акселерометра - стр 63"""
@@ -448,12 +458,12 @@ if __name__ == "__main__":
                    ,alp=accel_low_pass\
                    ,msm=magnetometer_sample_mode)
 
-    # Прочитать данные один раз - дать толчок для постоянной работы
+    # Прочитать данные один раз - дать 'толчок' для постоянной работы
     imu.read_magnetometer_data()
     imu.read_accelerometer_gyro_data()
     try:
         while True:
-            ax, ay, az, gx, gy, gz, x, y, z = imu.read_acc_gyro_mag_data()
+            ax, ay, az, gx, gy, gz, x, y, z = imu.read_full_data()
 
             print("""
 Accel: {:05.2f} {:05.2f} {:05.2f}
