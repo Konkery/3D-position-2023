@@ -33,9 +33,7 @@ class Figure2D:
         self.IterNumber = 0                # поле хранит номер измерения, которое может быть целым числом в диапазоне 0...360
 
         # заполнить '0' значениями массив данных сенсоров
-        #self.Gyro  = [ [0] * self.ValueLim, [0] * self.ValueLim, [0] * self.ValueLim ]
         self.Data   = [ [0] * self.ValueLim, [0] * self.ValueLim, [0] * self.ValueLim ]
-        #self.Mag   = [ [0] * self.ValueLim, [0] * self.ValueLim, [0] * self.ValueLim]
 
         self.X      = np.arange( self.ValueLim )     # набор целых чисел, являющиеся отсчетами оси Х
         
@@ -124,7 +122,7 @@ class Figure2D:
             min_y = min(self.Data[i]) + math.floor(min(self.Data[i])/10 ) # определить мин. значения по оси Y + 10%
 
             _ax[i].set_ylim( min_y, max_y )         # задать минимальное и максимальное значения для оси Y
-            self.Lines[i].set_ydata(self.Data[i])    # обновить значения оси Y
+            self.Lines[i].set_ydata(self.Data[i])   # обновить значения оси Y
             _ax[i].lines[0].set_color( self.FigureOpt['graphcolor'][i] ) # задать цвет кривой графика
                 
             _ax[i].grid(True) # задать сетку
@@ -136,30 +134,18 @@ class Figure2D:
     def UpdateDataIMU(self):
         data     = math.sin(math.radians( (self.IterNumber*360)/self.ValueLim )) # получить текущее значение sin(x)
         
-        data_acc_x   = data + random.uniform(0, data*0.1) # подмешать 10% шумов
-        data_acc_y   = data + random.uniform(0, data*0.1) # подмешать 10% шумов
-        data_acc_z   = data + random.uniform(0, data*0.1) # подмешать 10% шумов
+        data_x   = data + random.uniform(0, data*0.1) # подмешать 10% шумов
+        data_y   = data + random.uniform(0, data*0.1) # подмешать 10% шумов
+        data_z   = data + random.uniform(0, data*0.1) # подмешать 10% шумов
 
-        self.Data[0].append(data_acc_x)
-        self.Data[1].append(data_acc_y)
-        self.Data[2].append(data_acc_z)
-
-        data_gyr_x = (data + random.uniform(0, data*0.1))*100  # масштабировать к 100 deg/s и подмешать 10% шумов
-        data_gyr_y = (data + random.uniform(0, data*0.1))*100  # масштабировать к 100 deg/s и подмешать 10% шумов
-        data_gyr_z = (data + random.uniform(0, data*0.1))*100  # масштабировать к 100 deg/s и подмешать 10% шумов
-
-        self.Gyro[0].append(data_gyr_x)
-        self.Gyro[1].append(data_gyr_y)
-        self.Gyro[2].append(data_gyr_z)
+        self.Data[0].append(data_x)
+        self.Data[1].append(data_y)
+        self.Data[2].append(data_z)
 
         if len(self.Data[0]) > self.ValueLim:
             self.Data[0].pop(0)
             self.Data[1].pop(0)
             self.Data[2].pop(0)
-
-            self.Gyro[0].pop(0)
-            self.Gyro[1].pop(0)
-            self.Gyro[2].pop(0)
         
         self.IterNumber += 1
         self.IterNumber = 1 if self.IterNumber > 360 else self.IterNumber # обнулить счетчик итераций если он стал > 360
