@@ -63,7 +63,7 @@ class Figure2D:
         
         # Сохранить 'кривые' графиков в массив
         for i in range(self.FigureOpt['nrows']):
-            line, = self.Ax[i].plot(self.X, self.DataArr[i])  
+            line, = self.Ax[i].plot(self.X, self.DataArr[i])
             self.Lines.append(line)
     
         self.StartPropertyAxes() # задать характеристики отображения регионов построения графиков и собственно графиков
@@ -96,6 +96,9 @@ class Figure2D:
         for i in np.arange( self.FigureOpt['nrows'] ):
             _ax[i].set_ylabel( self.FigureOpt['ordinate'][i] , fontweight='bold' ) # задать жирное начертание для подписи к Y осям
             _ax[i].yaxis.get_label().set_rotation(0)                               # задать вращение подписей Y осей
+
+            _ax[i].lines[0].set_color( self.FigureOpt['graphcolor'][i] ) # задать цвет кривой графика
+            _ax[i].lines[0].set_linewidth(1) # задать толщину линии графика
         
             # задать подпись к единственной, последней оси абсцисс (ось Х), она одна для всех графиков
             _ax[i].set_xlabel( self.FigureOpt['abscissa'], fontweight='bold' ) if i == self.FigureOpt['nrows']-1 else None  
@@ -103,16 +106,25 @@ class Figure2D:
             # задать характеристики графика
             rect = _ax[i].patch                                  # добавить объект-фигуру в 'rect'
             rect.set_facecolor( self.FigureOpt['facecolor'][i] ) # задать цвет заливки фона графика
-            rect.set_alpha( self.FigureOpt['alpha'][i] )         # задать прозрачность заливки фона графика    
-        
+            rect.set_alpha( self.FigureOpt['alpha'][i] )         # задать прозрачность заливки фона графика
+
             # Задание минимального и максимального значения для оси X
             _ax[i].set_xlim( self.FigureOpt['xlim'][0], self.FigureOpt['xlim'][1] )
             
+            _ax[i].grid(True) # задать сетку
+
+            # Автоматическое масштабирование оси Y
+            _ax[i].relim()
+            _ax[i].autoscale_view()
+            #_ax[i].autoscale(enable=True, axis='y')
+            
             # Задание минимального и максимального значения для оси Y
-            if isinstance(self.FigureOpt['ylim'], str) and self.FigureOpt['ylim'] == 'auto':
-                _ax[i].set_ylim()
-            else:
-                _ax[i].set_ylim( self.FigureOpt['ylim'][0], self.FigureOpt['ylim'][1] )
+            #if isinstance(self.FigureOpt['ylim'], str) and self.FigureOpt['ylim'] == 'auto':
+            #    _ax[i].set_ylim()
+            #else:
+            #    _ax[i].set_ylim( self.FigureOpt['ylim'][0], self.FigureOpt['ylim'][1] )
+
+            
 
     '''
     Метод UpdatePropertyAxes обновляет  ряд свойств области графика (не фигуры!).
@@ -126,38 +138,21 @@ class Figure2D:
     
         # задать свойства осей и полигонов всех графиков
         for i in np.arange( self.FigureOpt['nrows'] ):
-            max_y = max(self.DataArr[i]) + math.ceil(max(self.DataArr[i])/10 ) # определить макс. значения по оси Y + 10%
-            min_y = min(self.DataArr[i]) + math.floor(min(self.DataArr[i])/10 ) # определить мин. значения по оси Y + 10%
+            #max_y = max(self.DataArr[i]) + math.ceil(max(self.DataArr[i])/10 ) # определить макс. значения по оси Y + 10%
+            #min_y = min(self.DataArr[i]) + math.floor(min(self.DataArr[i])/10 ) # определить мин. значения по оси Y + 10%
 
-            _ax[i].set_ylim( min_y, max_y )            # задать минимальное и максимальное значения для оси Y
+            #_ax[i].set_ylim( min_y, max_y )            # задать минимальное и максимальное значения для оси Y
             self.Lines[i].set_ydata(self.DataArr[i])   # обновить значения оси Y
-            _ax[i].lines[0].set_color( self.FigureOpt['graphcolor'][i] ) # задать цвет кривой графика
-            _ax[i].lines[0].set_linewidth(1) # задать толщину линии графика
-                
-            _ax[i].grid(True) # задать сетку
+            _ax[i].relim()
+            _ax[i].autoscale_view()                    # автоматическое масштабирование оси Y
+            #_ax[i].autoscale(enable=True, axis='y')
+
+            #_ax[i].lines[0].set_color( self.FigureOpt['graphcolor'][i] ) # задать цвет кривой графика
+            #_ax[i].lines[0].set_linewidth(1) # задать толщину линии графика
+            #_ax[i].grid(True) # задать сетку
+
+        return self.Lines # вернуть массив кривых графиков
             
-    ''' 
-        pass
-    '''
-
-    def UpdateDataIMU(self):
-        data     = math.sin(math.radians( (self.IterNumber*360)/self.ValueLim )) # получить текущее значение sin(x)
-        
-        data_x   = data + random.uniform(0, data*0.1) # подмешать 10% шумов
-        data_y   = data + random.uniform(0, data*0.1) # подмешать 10% шумов
-        data_z   = data + random.uniform(0, data*0.1) # подмешать 10% шумов
-
-        self.DataArr[0].append(data_x)
-        self.DataArr[1].append(data_y)
-        self.DataArr[2].append(data_z)
-
-        if len(self.DataArr[0]) > self.ValueLim:
-            self.DataArr[0].pop(0)
-            self.DataArr[1].pop(0)
-            self.DataArr[2].pop(0)
-        
-        self.IterNumber += 1
-        self.IterNumber = 1 if self.IterNumber > 360 else self.IterNumber # обнулить счетчик итераций если он стал > 360
     '''
         pass 
     '''

@@ -271,17 +271,14 @@ class ICM20948:
         # self.mag_read(AK09916_ST2)
 
         # Данные идут в обратном порядке!
-        mx, my, mz, st2 = struct.unpack("<hhhh", bytearray(data)) # распаковать данные
+        x, y, z, st2 = struct.unpack("<hhhh", bytearray(data)) # распаковать данные
         
         # Компенсировать измерения согласно константе - стр 13
-        mx *= 0.15
-        my *= 0.15
-        mz *= 0.15
+        x *= 0.15
+        y *= 0.15
+        z *= 0.15
 
-        mag_arr = [mx, my, mz] # упаковать значения Магнитометра в массив
-
-        #return mx, my, mz
-        return mag_arr
+        return x, y, z
 
     def read_accelerometer_gyro_data(self):
         """Считывание данных с акселерометра и гироскопа"""
@@ -299,8 +296,6 @@ class ICM20948:
         ay /= gs
         az /= gs
 
-        acc_arr = [ax, ay, az] # упаковать значения Акселерометра в массив
-
         # Считать текущий диапазон гироскопа из региста
         scale = (self.read(ICM20948_GYRO_CONFIG_1) & 0x06) >> 1
         # Компенсировать измерения согласно текущему рабочему диапазону - стр 11
@@ -310,57 +305,44 @@ class ICM20948:
         gy /= dps
         gz /= dps
 
-        gyro_arr = [gx, gy, gz] # упаковать значения Гироскопа в массив
-
-        #return ax, ay, az, gx, gy, gz
-        return acc_arr, gyro_arr
+        return ax, ay, az, gx, gy, gz
     
-    def read_full_data(self):
+    def read_acc_gyro_mag_data(self):
         """Последовательное чтение всех датчиков"""
         self.bank(0)
         data = self.read_bytes(ICM20948_ACCEL_XOUT_H, 23)
 
         ax, ay, az, gx, gy, gz, tmprt, st1, lmx, hmx, lmy, hmy, lmz, hmz, st2 = struct.unpack(">hhhhhhhBBBBBBBh", bytearray(data))
 
-        temp = tmprt # значение температуры термодатчика ICM20948
-
         mx = self.twos_comp_two_bytes(hmx, lmx)
         my = self.twos_comp_two_bytes(hmy, lmy)
         mz = self.twos_comp_two_bytes(hmz, lmz)
 
-        # масштабировать показания магнитометра в соответствии со значением масштабирующего коэффициента из документации
-        mx *= 0.15
-        my *= 0.15
-        mz *= 0.15
-
-        mag_arr = [mx, my, mz] # упаковать значения Магнитометра в массив
-
         self.bank(2)
-        # Считать значения для масштабирования показания акселерометра из регистра
+        # Считать текущий диапазон акселерометра из региста
         scale = (self.read(ICM20948_ACCEL_CONFIG) & 0x06) >> 1
-        # Компенсировать измерения согласно текущему скалирующему показателю - стр 12
+        # Компенсировать измерения согласно текущему рабочему диапазону - стр 12
         gs = [16384.0, 8192.0, 4096.0, 2048.0][scale]
 
         ax /= gs
         ay /= gs
         az /= gs
 
-        acc_arr = [ax, ay, az] # упаковать значения Акселерометра в массив
-
-        # Считать текущий диапазон гироскопа из регистра
+        # Считать текущий диапазон гироскопа из региста
         scale = (self.read(ICM20948_GYRO_CONFIG_1) & 0x06) >> 1
-        # Компенсировать измерения согласно текущему рабочему диапазону - стр 11
+         # Компенсировать измерения согласно текущему рабочему диапазону - стр 11
         dps = [131, 65.5, 32.8, 16.4][scale]
 
         gx /= dps
         gy /= dps
         gz /= dps
 
-        gyro_arr = [gx, gy, gz] # упаковать значения Гироскопа в массив
+        # необходимо развернуть байты данных с осей магнитометра
+        mx *= 0.15
+        my *= 0.15
+        mz *= 0.15
 
-
-        #return ax, ay, az, gx, gy, gz, mx, my, mz # эту строку нужно РАСКОМЕНТИРОВАТЬ если будет работать секция main
-        return acc_arr, gyro_arr, mag_arr, temp # эту строку нужно ЗАКОМЕНТИРОВАТЬ если будет работать секция main
+        return ax, ay, az, gx, gy, gz, mx, my, mz
 
     def set_magnetometer_sample_mode(self, rate=50):
         """Настройка частоты семплирования акселерометра - стр 63"""
@@ -458,22 +440,16 @@ if __name__ == "__main__":
 
     magnetometer_sample_mode = 50
 
-    imu = ICM20948( gfs=gyro_full_scale\
-                   ,gsr=gyro_sample_rate\
-                   ,glp=gyro_low_pass\
-                   ,afs=accel_full_scale\
-                   ,asr=accel_sample_rate
-                   ,alp=accel_low_pass\
-                   ,msm=magnetometer_sample_mode)
+    imu = ICM20948(gfs=gyro_full_scale, gsr=gyro_sample_rate, glp=gyro_low_pass, afs=accel_full_scale, asr=accel_sample_rate, alp=accel_low_pass, msm=magnetometer_sample_mode)
 
-    # Прочитать данные один раз - дать 'толчок' для постоянной работы
+    # Прочитать данные один раз - дать толчок для постоянной работы
     imu.read_magnetometer_data()
     imu.read_accelerometer_gyro_data()
     try:
         while True:
-            x, y, z = imu.read_magnetometer_data()
-            ax, ay, az, gx, gy, gz = imu.read_accelerometer_gyro_data()
-            #ax, ay, az, gx, gy, gz, x, y, z = imu.read_full_data()
+            #x, y, z = imu.read_magnetometer_data()
+            #ax, ay, az, gx, gy, gz = imu.read_accelerometer_gyro_data()
+            ax, ay, az, gx, gy, gz, x, y, z = imu.read_acc_gyro_mag_data()
 
             print("""
 Accel: {:05.2f} {:05.2f} {:05.2f}
