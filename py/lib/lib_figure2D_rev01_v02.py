@@ -26,21 +26,17 @@ class Figure2D:
                     -> graphcolor - цвет кривой графика, кортеж типа *string*
                     -> xlim       - диапазон значений оси X Xmim, Xmax, кортеж из двух значений типа *int*
                     -> ylim       - диапазон значений оси Y Ymim, Ymax, кортеж из двух значений типа *int*
-            _sensVal - массив текущих значений сенсора, в виде массива из трех [X, Y, Z] элементов типа *int*
-            _sensArr - итоговый массив из трех массивов значений сенсора, в виде массива из 3*N элементов типа *int*
+            _sensDataArr - итоговый массив из трех массивов значений сенсора, в виде массива из 3*N элементов типа *int*
 
     '''
     
-    def __init__( self, _opts, _sensData, _sensDataArr ):
+    def __init__( self, _opts, _sensDataArr ):
 
         self.FigureOpt  = _opts            # поле хранит набор характеристик фигуры которую необходимо сгенерировать
         
         self.ValueLim   = _opts['xlim'][1] # количество значений сенсора хранящихся в массиве
         self.IterNumber = 0                # поле хранит номер измерения, которое может быть целым числом в диапазоне 0...360
 
-        # заполнить '0' значениями массив данных сенсоров
-        #self.Data   = [ [0] * self.ValueLim, [0] * self.ValueLim, [0] * self.ValueLim ]
-        self.Data    = _sensData
         self.DataArr = _sensDataArr
 
         self.X       = np.arange( self.ValueLim )     # набор целых чисел, являющиеся отсчетами оси Х
