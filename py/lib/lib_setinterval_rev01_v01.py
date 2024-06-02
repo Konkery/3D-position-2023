@@ -1,4 +1,7 @@
+# Блок импорта системных библиотек python
 import asyncio
+import functools
+from typing import Any, Callable
 import time
 
 '''
@@ -6,11 +9,12 @@ import time
 функции setInterval в JavaScript
 '''
 class SetInterval:
-    def __init__(self, interval, fn):
-        self.interval = interval        # интервал вызова пользовательской функции 'fn'
-        self.fn = fn                    # пользовательский метод который будет асинхронно вызываться с заданным периодом
-        self.is_running = False         # идет выполнение 'run'
-        self.task = None
+    def __init__(self, _interval, _fn, *args):
+        
+        self.interval            = _interval # интервал вызова пользовательской функции 'fn'       
+        self.fn                  = functools.partial(_fn, *args) # пользовательский метод который будет асинхронно вызываться с заданным периодом
+        self.is_running          = False # идет выполнение асинхронного кода
+        self.task                = None
         self.last_execution_time = None # вспомогательное поле для определения истинного времени между вызовами, отладочный код 
 
     '''
@@ -53,31 +57,3 @@ class SetInterval:
     '''
     def stop(self):
         self.is_running = False
-
-
-if __name__ == "__main__":
-    async def Main():
-        # Пример использования
-        def FuncUser_1():
-            print("Hello world!---1")
-        def FuncUser_2():
-            print("Hello world!---2")
-        def FuncUser_3():
-            print("Hello world!---3")
-
-        interval_1 = SetInterval(0.05, FuncUser_1)
-        interval_2 = SetInterval(0.05, FuncUser_2)
-        interval_3 = SetInterval(0.05, FuncUser_3)
-    
-        interval_1.start()
-        interval_2.start()
-        interval_3.start()
-
-        # Ждем XXX секунд, затем останавливаем выполнение
-        await asyncio.sleep( 3 )
-
-        interval_1.stop()
-        interval_2.stop()
-        interval_3.stop()
-    
-    asyncio.run( Main() )
