@@ -2,13 +2,14 @@ import time
 import struct
 import sys
 
-__version__ = '0.0.8'
+__version__ = '0.0.9'
 
 CHIP_ID = 0xEA
 I2C_ADDR = 0x68
 I2C_ADDR_ALT = 0x69
 ICM20948_BANK_SEL = 0x7f
 
+# bank 3
 ICM20948_I2C_MST_ODR_CONFIG = 0x00
 ICM20948_I2C_MST_CTRL = 0x01
 ICM20948_I2C_MST_DELAY_CTRL = 0x02
@@ -22,9 +23,11 @@ ICM20948_I2C_SLV1_CTRL = 0x09
 ICM20948_I2C_SLV1_DO = 0x0A
 ICM20948_EXT_SLV_SENS_DATA_00 = 0x3B
 
+# bank 2
 ICM20948_GYRO_SMPLRT_DIV = 0x00
 ICM20948_GYRO_CONFIG_1 = 0x01
 ICM20948_GYRO_CONFIG_2 = 0x02
+ODR_ALIGN_EN = 0x09
 
 # Bank 0
 ICM20948_WHO_AM_I = 0x00
@@ -49,8 +52,6 @@ ICM20948_TEMP_OUT_L = 0x3A
 ICM20948_TEMPERATURE_DEGREES_OFFSET = 21
 ICM20948_TEMPERATURE_SENSITIVITY = 333.87
 ICM20948_ROOM_TEMP_OFFSET = 21
-
-ODR_ALIGN_EN = 0x09
 
 AK09916_I2C_ADDR = 0x0c
 AK09916_CHIP_ID = 0x09
@@ -83,13 +84,6 @@ class ICM20948:
         """Считайть 1 байт по указанному адресу"""
         return self._bus.read_byte_data(self._addr, reg)
 
-    def trigger_mag_io(self):
-        """Старая функция, включающая на 5мс режим I2C мастера"""
-        user = self.read(ICM20948_USER_CTRL)
-        self.write(ICM20948_USER_CTRL, user | 0x20)
-        time.sleep(0.005)
-        self.write(ICM20948_USER_CTRL, user)
-
     def read_bytes(self, reg, length=1):
         """Считать указанное количество байт, начиная с указанного регистра"""
         return self._bus.read_i2c_block_data(self._addr, reg, length)
@@ -109,13 +103,12 @@ class ICM20948:
         return a
 
     def mag_write(self, reg, value):
-        """Записать байт в регист слейв магнитометра - стр 70"""
+        """Записать байт в регистр слейв магнитометра - стр 70"""
         self.bank(3)
-        self.write(ICM20948_I2C_SLV1_ADDR, AK09916_I2C_ADDR)  # режим записи
-        self.write(ICM20948_I2C_SLV1_REG, reg)
-        self.write(ICM20948_I2C_SLV1_DO, value)
-        self.write(ICM20948_I2C_SLV1_CTRL, 1 << 7) 
-        self.bank(0)
+        self.write(ICM20948_I2C_SLV0_ADDR, AK09916_I2C_ADDR)  # режим записи
+        self.write(ICM20948_I2C_SLV0_REG, reg)
+        self.write(ICM20948_I2C_SLV0_DO, value)
+        # self.bank(0)
 
     def mag_read(self, reg):
         """Считать 1 байт со слейв магнитометра - стр 70"""
@@ -124,6 +117,7 @@ class ICM20948:
         self.write(ICM20948_I2C_SLV0_REG, reg)
         self.write(ICM20948_I2C_SLV0_CTRL, 1 << 7 | 1)  # считать 1 байт
         self.bank(0)
+        time.sleep(0.01)
         return self.read(ICM20948_EXT_SLV_SENS_DATA_00)
 
     def mag_read_bytes(self, reg, length=1):
@@ -156,14 +150,12 @@ class ICM20948:
         """Включение I2C мастера - стр 36"""
         self.bank(0)
         value = self.read(ICM20948_USER_CTRL)
-        value |= (1 << 5) # С этой строкой можно удалить trigger_io
+        value |= (1 << 5) 
         self.write(ICM20948_USER_CTRL, value)
         self.bank(3)
-        value = self.read(ICM20948_I2C_MST_CTRL)
-        value &= ~(0x0F) # Очищаем биты часов [3:0]
-        value |= (0x07) # Настройка частоты работы I2C мастреа - 400kHz, стр 68
-        value |= (1 << 4) # Отключаем рестарт после чтения со слейва
-        self.write(ICM20948_I2C_MST_CTRL, value)
+        self.write(ICM20948_I2C_MST_CTRL, 0x07)
+        time.sleep(0.01)
+
 
     def i2cMasterPassthrough(self):
         """Отключение обход прерывания - стр 38"""
@@ -187,18 +179,14 @@ class ICM20948:
         """Ресет ICM20948"""
         self.bank(0)
         temp = self.read(ICM20948_USER_CTRL)
-        self.write(ICM20948_USER_CTRL, temp & 0xDF) #Выключить режим мастера, если таковой есть
+        self.write(ICM20948_USER_CTRL, temp & 0xDF) #Выключить режим мастера, если он включен
         # Включаем ресет и ждём - стр 37
         # Также включаем слип и выбираем подходящий цикл
         self.write(ICM20948_PWR_MGMT_1, 1 << 7 | 1 << 6 | 1 << 0)
-        time.sleep(0.1) # Операция долгая - ожидание - 100мс
-        temp = self.read(ICM20948_PWR_MGMT_1)
-        temp &= ~(1 << 6) # Выключаем сон
-        temp &= ~(1 << 5) # Выключаем режим низкого потребления питания
-        temp |= (1 << 0) # Выбираем наиболее подходящий цикл процессора - стр 37        
-        self.write(ICM20948_PWR_MGMT_1, temp)
+        time.sleep(0.1) # Операция долгая - ожидание - 100мс     
+        self.write(ICM20948_PWR_MGMT_1, 0b1)
         # Включаем все оси акселерометра и гироскопа - стр 38
-        self.write(ICM20948_PWR_MGMT_2, 0x00)
+        self.write(ICM20948_PWR_MGMT_2, 0)
 
     def setSampleMode(self):
         """Настройка режима частоты семплирования"""
@@ -214,10 +202,8 @@ class ICM20948:
         self.bank(0)
         if not self.read(ICM20948_WHO_AM_I) == CHIP_ID: # Проверка датчика
             raise RuntimeError("Unable to find ICM20948")
-        self.resetIMU() # Ресетим датчик
-
-        self.setSampleMode() # Настройка режима семплирования
-
+        
+        self.resetIMU() # Ресетим датчик 
         self.bank(2)
         # Вкл выравнивание - стр 63
         self.write(ODR_ALIGN_EN, 1 << 0)
@@ -225,42 +211,41 @@ class ICM20948:
         # Установка ODR и dlpf гиро - стр 59
         # 500dps, 50Hz, dlpf on, GYRO_DLPFCFG = 3
         self.set_gyro_full_scale(gfs)
-        self.set_gyro_sample_rate(gsr)
+        self.set_gyro_sample_rate(gsr)  # CHECK
         self.set_gyro_low_pass(True, glp)
         
         # Установка ODR и dlpf акселерометра - стр 63
         # 2g, 50Hz, dlpf on, ACCEL_DLPFCFG = 3
         self.set_accelerometer_full_scale(afs)
-        self.set_accelerometer_sample_rate(asr)
+        self.set_accelerometer_sample_rate(asr)   #CHECK
         self.set_accelerometer_low_pass(True, alp)
         
-    def setupAK(self, msm=50):
+    def setupAK(self, msm=50, isr=137):
         """Настройка AK09916 - магнитометра"""
-        self.i2cMasterPassthrough() # Отключить обход прерывания - стр 38
-        
         self.i2cMasterReset()
         self.i2cMasterEnable() #Включить I2C мастера
+        self.i2cMasterSampleMode(isr)
+        time.sleep(0.01)
+        # Ресет магнитометра
+        self.MagReset()
 
         # Иногда после настройки мастера магнитометр перестаёт отвечать ему
-        # Перезапускаем мастера, пока не получим ответ
         tries = 0
         maxTries = 5
         while (tries < maxTries):
             # Пробуем прочитать WAI с магнитометра
             if (self.mag_read(AK09916_WIA) == AK09916_CHIP_ID):
                 break # Ответ получен!
-            self.i2cMasterReset() # Иначе ресетим мастера
             tries += 1
+            time.sleep(0.1)
 
         if (tries == maxTries):
             raise RuntimeError("Unable to find AK09916 after 5 tries.")
 
-        # Ресет магнитометра
-        self.MagReset()
-
         # Настройка режима работы магнитометра - стр 79
         self.set_magnetometer_sample_mode(msm)
-        self.i2cMasterConfigureSlave(AK09916_I2C_ADDR, AK09916_ST1, 9)
+        time.sleep(0.01)
+        self.mag_read_bytes(AK09916_HXL, 8)
 
     def read_magnetometer_data(self, timeout=1.0):
         """Считывание данных с магнитометра"""
@@ -271,14 +256,16 @@ class ICM20948:
         # self.mag_read(AK09916_ST2)
 
         # Данные идут в обратном порядке!
-        x, y, z, st2 = struct.unpack("<hhhh", bytearray(data)) # распаковать данные
+        mx, my, mz, st2 = struct.unpack("<hhhh", bytearray(data)) # распаковать данные
         
         # Компенсировать измерения согласно константе - стр 13
-        x *= 0.15
-        y *= 0.15
-        z *= 0.15
+        mx *= 0.15
+        my *= 0.15
+        mz *= 0.15
 
-        return x, y, z
+        mag_arr = [mx, my, mz] # упаковать значения Магнитометра в массив
+
+        return mag_arr
 
     def read_accelerometer_gyro_data(self):
         """Считывание данных с акселерометра и гироскопа"""
@@ -296,6 +283,8 @@ class ICM20948:
         ay /= gs
         az /= gs
 
+        acc_arr = [ax, ay, az] # упаковать значения Акселерометра в массив
+
         # Считать текущий диапазон гироскопа из региста
         scale = (self.read(ICM20948_GYRO_CONFIG_1) & 0x06) >> 1
         # Компенсировать измерения согласно текущему рабочему диапазону - стр 11
@@ -305,53 +294,65 @@ class ICM20948:
         gy /= dps
         gz /= dps
 
-        return ax, ay, az, gx, gy, gz
+        gyro_arr = [gx, gy, gz] # упаковать значения Гироскопа в массив
+
+        return acc_arr, gyro_arr
     
-    def read_acc_gyro_mag_data(self):
+    def read_full_data(self):
         """Последовательное чтение всех датчиков"""
         self.bank(0)
-        data = self.read_bytes(ICM20948_ACCEL_XOUT_H, 23)
+        data = self.read_bytes(ICM20948_ACCEL_XOUT_H, 22)
 
-        ax, ay, az, gx, gy, gz, tmprt, st1, lmx, hmx, lmy, hmy, lmz, hmz, st2 = struct.unpack(">hhhhhhhBBBBBBBh", bytearray(data))
+        ax, ay, az, gx, gy, gz, tmprt, lmx, hmx, lmy, hmy, lmz, hmz, st2 = struct.unpack(">hhhhhhhBBBBBBh", bytearray(data))
+
+        # temp = tmprt # значение температуры термодатчика ICM20948
 
         mx = self.twos_comp_two_bytes(hmx, lmx)
         my = self.twos_comp_two_bytes(hmy, lmy)
         mz = self.twos_comp_two_bytes(hmz, lmz)
 
+        # масштабировать показания магнитометра в соответствии со значением масштабирующего коэффициента из документации
+        mx *= 0.15
+        my *= 0.15
+        mz *= 0.15
+
+        mag_arr = [mx, my, mz] # упаковать значения Магнитометра в массив
+
         self.bank(2)
-        # Считать текущий диапазон акселерометра из региста
+        # Считать значения для масштабирования показания акселерометра из регистра
         scale = (self.read(ICM20948_ACCEL_CONFIG) & 0x06) >> 1
-        # Компенсировать измерения согласно текущему рабочему диапазону - стр 12
+        # Компенсировать измерения согласно текущему скалирующему показателю - стр 12
         gs = [16384.0, 8192.0, 4096.0, 2048.0][scale]
 
         ax /= gs
         ay /= gs
         az /= gs
 
-        # Считать текущий диапазон гироскопа из региста
+        acc_arr = [ax, ay, az] # упаковать значения Акселерометра в массив
+
+        # Считать текущий диапазон гироскопа из регистра
         scale = (self.read(ICM20948_GYRO_CONFIG_1) & 0x06) >> 1
-         # Компенсировать измерения согласно текущему рабочему диапазону - стр 11
+        # Компенсировать измерения согласно текущему рабочему диапазону - стр 11
         dps = [131, 65.5, 32.8, 16.4][scale]
 
         gx /= dps
         gy /= dps
         gz /= dps
 
-        # необходимо развернуть байты данных с осей магнитометра
-        mx *= 0.15
-        my *= 0.15
-        mz *= 0.15
+        gyro_arr = [gx, gy, gz] # упаковать значения Гироскопа в массив
 
-        return ax, ay, az, gx, gy, gz, mx, my, mz
+        return acc_arr, gyro_arr, mag_arr, tmprt
 
     def set_magnetometer_sample_mode(self, rate=50):
         """Настройка частоты семплирования акселерометра - стр 63"""
         value = 0x00
         value |= {1: 0b00001, 10: 0b00010, 20: 0b00100, 50: 0b00110, 100: 0b01000}[rate]
         self.mag_write(AK09916_CNTL2, value)
-        if (value > 1):
-            time.sleep(0.0001)
-            self.mag_read_bytes(AK09916_ST1, 9) # необходимо вызывать для чтения данных через метод read_acc_gyro_mag_data()
+
+    def i2cMasterSampleMode(self, rate=137):
+        """Настройка частоты семплирования акселерометра - стр 63"""
+        value = {1100: 0, 550: 1, 275: 2, 137: 3, 70: 4}[rate]
+        self.mag_write(ICM20948_I2C_MST_ODR_CONFIG, value)
 
     def set_accelerometer_sample_rate(self, rate=50):
         """Настройка частоты семплирования акселерометра - стр 63"""
@@ -414,7 +415,41 @@ class ICM20948:
         temp = self.read(ICM20948_USER_CTRL)
         self.write(ICM20948_USER_CTRL, temp & 0xDF) #Выключить режим мастера, если таковой есть
 
-    def __init__(self, gfs, gsr, glp, afs, asr, alp, msm, i2c_addr=I2C_ADDR, i2c_bus=None):
+    def enableGyro(self, mode=True):
+        temp = self.read(ICM20948_PWR_MGMT_2)
+        if mode: temp |= 0b00000111
+        else:    temp &= 0b11111000
+        self.write(ICM20948_PWR_MGMT_2, temp)
+
+    def enableAcc(self, mode=True):
+        temp = self.read(ICM20948_PWR_MGMT_2)
+        if mode: temp |= 0b00111000
+        else:    temp &= 0b11000111
+        self.write(ICM20948_PWR_MGMT_2, temp)
+
+    def printDebug(self):
+        self.bank(0)
+        print('###### BANK 0 ######')
+        print(f'ICM20948_PWR_MGMT_1: {bin(self.read(ICM20948_PWR_MGMT_1))}')
+        print(f'ICM20948_PWR_MGMT_2: {bin(self.read(ICM20948_PWR_MGMT_2))}')
+        print(f'ICM20948_LP_CONFIG: {bin(self.read(ICM20948_LP_CONFIG))}')
+        print(f'ICM20948_USER_CTRL: {bin(self.read(ICM20948_USER_CTRL))}')
+        print(f'ICM20948_INT_PIN_CFG: {bin(self.read(ICM20948_INT_PIN_CFG))}')
+
+        self.bank(2)
+        print('###### BANK 2 ######')
+        print(f'ODR_ALIGN_EN: {bin(self.read(ODR_ALIGN_EN))}')
+        print(f'ICM20948_ACCEL_SMPLRT_DIV_1: {bin(self.read(ICM20948_ACCEL_SMPLRT_DIV_1))}')
+        print(f'ICM20948_ACCEL_SMPLRT_DIV_2: {bin(self.read(ICM20948_ACCEL_SMPLRT_DIV_2))}')
+        print(f'ICM20948_GYRO_SMPLRT_DIV: {bin(self.read(ICM20948_GYRO_SMPLRT_DIV))}')
+
+        self.bank(3)
+        print('###### BANK 3 ######')
+        print(f'ICM20948_I2C_MST_CTRL: {bin(self.read(ICM20948_I2C_MST_CTRL))}')
+        print(f'ICM20948_I2C_MST_ODR_CONFIG: {bin(self.read(ICM20948_I2C_MST_ODR_CONFIG))}')
+
+
+    def __init__(self, gfs, gsr, glp, afs, asr, alp, msm, isr, i2c_addr=I2C_ADDR, i2c_bus=None):
         self._bank = -1
         self._addr = i2c_addr
 
@@ -426,40 +461,5 @@ class ICM20948:
 
         self.setupICM(gfs, gsr, glp, afs, asr, alp) # Вынес в отдельную функцию, чтобы не путать что к чему относится
 
-        self.setupAK(msm)
+        self.setupAK(msm=msm, isr=isr)
         
-
-if __name__ == "__main__":
-    gyro_full_scale = 1000
-    gyro_sample_rate = 50
-    gyro_low_pass = 3
-
-    accel_full_scale = 2
-    accel_sample_rate = 50
-    accel_low_pass = 3
-
-    magnetometer_sample_mode = 50
-
-    imu = ICM20948(gfs=gyro_full_scale, gsr=gyro_sample_rate, glp=gyro_low_pass, afs=accel_full_scale, asr=accel_sample_rate, alp=accel_low_pass, msm=magnetometer_sample_mode)
-
-    # Прочитать данные один раз - дать толчок для постоянной работы
-    imu.read_magnetometer_data()
-    imu.read_accelerometer_gyro_data()
-    try:
-        while True:
-            #x, y, z = imu.read_magnetometer_data()
-            #ax, ay, az, gx, gy, gz = imu.read_accelerometer_gyro_data()
-            ax, ay, az, gx, gy, gz, x, y, z = imu.read_acc_gyro_mag_data()
-
-            print("""
-Accel: {:05.2f} {:05.2f} {:05.2f}
-Gyro:  {:05.2f} {:05.2f} {:05.2f}
-Mag:   {:05.2f} {:05.2f} {:05.2f}""".format(
-            ax, ay, az, gx, gy, gz, x, y, z
-        ))
-
-            time.sleep(0.5)
-    except (KeyboardInterrupt, SystemExit) as exErr:
-        imu.powerOff()
-        print("\nEnding program")
-        sys.exit(0)

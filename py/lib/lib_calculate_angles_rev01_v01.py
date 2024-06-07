@@ -2,7 +2,7 @@ import sys
 import os
 
 # Добавить текущий рабочий каталог в sys.path
-sys.path.append(os.getcwd())
+#sys.path.append(os.getcwd())
 
 # Подключить библиотеки для мат обработки данных и генерации случайных данных
 import numpy as np
@@ -16,7 +16,7 @@ import time
 # Подключить пользовательские модули
 # ------------------------------------------------------------------------
 # Подключить модуль для работы с датчиком IMU ICM20948
-from lib_imu_20948_horizon_rev01_v03 import *
+from lib_imu_20948_horizon_rev01_v07 import *
 # Подключить модуль для работы с БД Redis
 from lib_work_redis_rev01_v01 import *
 
@@ -57,7 +57,9 @@ class CalculateAngles:
         self.AccSampleRate  = 50   # частота семплирования Акселерометра - 50Hz
         self.AccLowPass     = 3    # фильтрация Акселерометра ~ 50Hz
 
-        self.MagSampleRate = 50    # частота семплирования Магнитометра - 50Hz
+        self.MagSampleRate  = 50    # частота семплирования Магнитометра - 50Hz
+
+        self.Isr            = 137   # частота ODR в режиме пакетного чтения
 
         self.ICM20948 = ICM20948( gfs=self.GyroFullScale\
                                  ,gsr=self.GyroSampleRate\
@@ -65,7 +67,8 @@ class CalculateAngles:
                                  ,afs=self.AccFullScale\
                                  ,asr=self.AccSampleRate
                                  ,alp=self.AccLowPass\
-                                 ,msm=self.MagSampleRate) # инстанцировать модуль для работы с датчиком IMU ICM20948 
+                                 ,msm=self.MagSampleRate\
+                                 ,isr=self.Isr) # инстанцировать модуль для работы с датчиком IMU ICM20948
         
         # Набор итоговых тройных массивов для хранения  'сырых' данных от трех (3) сенсоров, по трем (3) осям
         self.AccArrRaw  = [ [0]*self.LimDataArr, [0]*self.LimDataArr, [0]*self.LimDataArr ] # заполнить массив '0' значениями
@@ -91,7 +94,7 @@ class CalculateAngles:
         self.Alpha = 0.98
 
         # Углы Эйлера полученные с помощью Акселерометра
-        self.AccArrAngle = [ [0]*self.LimDataArr, [0]*self.LimDataArr, [0]*self.LimDataArr ]
+        self.AccArrAngle  = [ [0]*self.LimDataArr, [0]*self.LimDataArr, [0]*self.LimDataArr ]
         # Углы Эйлера полученные с помощью Гироскопа
         self.GyroArrAngle = [ [0]*self.LimDataArr, [0]*self.LimDataArr, [0]*self.LimDataArr ]
         # Углы Эйлера полученные с помощью комплементарного фильтра слияния
@@ -232,9 +235,14 @@ class CalculateAngles:
         WriteValJSONtoDB(self.ConnectDB, TempListKey, TempListData)   
 
         # Сохранить значение дельты времени обращений к IMU в БД
-        TimeDeltaKey = ('TimeDeltaAngle',)
-        TimeDeltaData = (self.TimeDeltaAngle,)
-        WriteValJSONtoDB(self.ConnectDB, TimeDeltaKey, TimeDeltaData)
+        TimeDeltaAngleKey = ('TimeDeltaAngle',)
+        TimeDeltaAngleData = (self.TimeDeltaAngle,)
+        WriteValJSONtoDB(self.ConnectDB, TimeDeltaAngleKey, TimeDeltaAngleData)
+
+        # Сохранить значение коэффициента Альфа, используемого при вычисления значений углов Эйлера в фильтре слияния
+        AlphaKey = ('AlphaKey',)
+        AlphaData = (self.Alpha,)
+        WriteValJSONtoDB(self.ConnectDB, AlphaKey, AlphaData)
 
     '''
         Метод UpdateAll выполняет функцию агрегатора, который объединяет все методы класса, которые
@@ -246,5 +254,3 @@ class CalculateAngles:
         self.ReadDataICM20948()
         self.UpdateAngleEuler()
         self.WriteDataDB()
-
-        

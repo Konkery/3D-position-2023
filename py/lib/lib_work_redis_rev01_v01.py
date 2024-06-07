@@ -32,11 +32,19 @@ def WriteValJSONtoDB( _connectDB, _inputListKey, _inputListData ) -> None:
     '_connectDB'      - ссылка на объект типа connect DB Redis;
     '_inputListKey'   - кортеж содержащий имена (string) N ключей БД Redis;
     '_outputListData' - кортеж содержащий переменные в которые записываются считанные из БД значения
-'''
-def ReadValJSONfromDB( _connectDB, _inputListKey, _outputListData ) -> None:
 
+'''
+def ReadValJSONfromDB(_connectDB, _inputListKey, _outputListData):
     # Считать и десериализовать JSON значения ключей из Redis
     for i, key in enumerate(_inputListKey):
-        data_json = _connectDB.get(key)  # Прочитать JSON значение из Redis по ключу        
-        # Если ключ содержит значение - присвоить его, в противном случае - None
-        _outputListData[i] = json.loads(data_json) if data_json is not None else None
+        data_json = _connectDB.get(key)  # Прочитать JSON значение из Redis по ключу
+        if data_json is not None:
+            data = json.loads(data_json)  # Десериализация JSON значения
+            # Проверяем, является ли текущий элемент списком
+            if isinstance(_outputListData[i], list):
+                # Если это список, очищаем его и добавляем новые данные
+                _outputListData[i].clear()
+                _outputListData[i].extend(data if isinstance(data, list) else [data])
+            else:
+                # Если это не список (скалярное значение), просто присваиваем значение
+                _outputListData[i] = data

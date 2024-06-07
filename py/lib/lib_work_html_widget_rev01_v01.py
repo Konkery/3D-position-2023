@@ -29,6 +29,6 @@ def CreateHTMLwidgest() -> object:
 '''
 def UpdateHTMLwidgest( _x, _y, _z, _arrVal ) -> None:
     
-    _x.value = f'<div style="text-align: right; width: 100px; border: 3px solid #000"><span style="padding-right: 3px">{_arrVal[0][-1]:.1f}</span></div>'
-    _y.value = f'<div style="text-align: right; width: 100px; border: 3px solid #000"><span style="padding-right: 3px">{_arrVal[1][-1]:.1f}</span></div>'
-    _z.value = f'<div style="text-align: right; width: 100px; border: 3px solid #000"><span style="padding-right: 3px">{_arrVal[2][-1]:.1f}</span></div>'
+    _x.value = f'<div style="text-align: right; width: 100px; border: 3px solid #000"><span style="padding-right: 3px">{_arrVal[0][-1]:.4f}</span></div>'
+    _y.value = f'<div style="text-align: right; width: 100px; border: 3px solid #000"><span style="padding-right: 3px">{_arrVal[1][-1]:.4f}</span></div>'
+    _z.value = f'<div style="text-align: right; width: 100px; border: 3px solid #000"><span style="padding-right: 3px">{_arrVal[2][-1]:.4f}</span></div>'
