@@ -43,19 +43,19 @@ YAW_IND     = 2
     _opts
 '''
 class CalculateAngles:
-    def __init__(self, _connectDB, _limDataArr, _limWinArr) -> None:
+    def __init__(self, _connectDB, _limDataArr, _limWinArr, _opt) -> None:
         
         self.ConnectDB     = _connectDB  # коннект к БД Redis
         self.LimWinArr     = _limWinArr  # размер окно усреднения данных
         self.LimDataArr    = _limDataArr # количество 'сырых' значений хранящихся в массивах AccArrRaw/ GyroArrRaw/ MagArrRaw
 
-        self.GyroFullScale  = 1000 # величина настроенного диапазона Гироскопа (+/-) 1000 град/сек
-        self.GyroSampleRate = 50   # частота семплирования Гироскопа - 50Hz
-        self.GyroLowPass    = 3    # фильтрация Гироскопа ~ 50Hz
+        self.GyroFullScale  = _opt.GyroFullScale # величина настроенного диапазона Гироскопа (+/-) 1000 град/сек
+        self.GyroSampleRate = _opt.GyroSampleRate   # частота семплирования Гироскопа - 50Hz
+        self.GyroLowPass    = _opt.GyroLowPass    # фильтрация Гироскопа ~ 50Hz
 
-        self.AccFullScale   = 2    # величина настроенного диапазона Акселерометра (+/-) 2g
-        self.AccSampleRate  = 50   # частота семплирования Акселерометра - 50Hz
-        self.AccLowPass     = 3    # фильтрация Акселерометра ~ 50Hz
+        self.AccFullScale   = _opt.AccFullScale    # величина настроенного диапазона Акселерометра (+/-) 2g
+        self.AccSampleRate  = _opt.AccSampleRate   # частота семплирования Акселерометра - 50Hz
+        self.AccLowPass     = _optAccLowPass    # фильтрация Акселерометра ~ 50Hz
 
         self.MagSampleRate  = 50    # частота семплирования Магнитометра - 50Hz
 
