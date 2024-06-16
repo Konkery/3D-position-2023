@@ -29,9 +29,9 @@ def WriteValJSONtoDB( _connectDB, _inputListKey, _inputListData ) -> None:
     Функция 'ReadValJSONfromDB' читает N значений JSON из БД Redis, производит десериализацию
     и возвращает результирующих значений.
     Аргументы:
-    '_connectDB'      - ссылка на объект типа connect DB Redis;
-    '_inputListKey'   - кортеж содержащий имена (string) N ключей БД Redis;
-    '_outputListData' - кортеж содержащий переменные в которые записываются считанные из БД значения
+        -> _connectDB      - ссылка на объект типа connect DB Redis;
+        -> _inputListKey   - кортеж содержащий имена (string) N ключей БД Redis;
+        -> _outputListData - список содержащий выходные переменные в которые записываются значения из БД
 
 '''
 def ReadValJSONfromDB(_connectDB, _inputListKey, _outputListData):

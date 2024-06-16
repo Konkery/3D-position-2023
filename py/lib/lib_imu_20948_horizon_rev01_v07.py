@@ -156,7 +156,6 @@ class ICM20948:
         self.write(ICM20948_I2C_MST_CTRL, 0x07)
         time.sleep(0.01)
 
-
     def i2cMasterPassthrough(self):
         """Отключение обход прерывания - стр 38"""
         self.bank(0)
