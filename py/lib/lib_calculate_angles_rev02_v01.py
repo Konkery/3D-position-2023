@@ -276,7 +276,7 @@ class CalculateAngles:
         ReadValJSONfromDB( self.ConnectDB, ImuListKeyOdrSet, ImuListDataOdrSet )
 
         # Инициализировать поле класса хранящее значение коэффициента Альфа, новым, заданным в БД значением
-        ImuListKeyAlpha         = ('AlphaIn',)
+        ImuListKeyAlpha         = ('AlphaSet',)
         ImuListDataAlpha        = [self.Alpha]
         ReadValJSONfromDB( self.ConnectDB, ImuListKeyAlpha, ImuListDataAlpha )
 
